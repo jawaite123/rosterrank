@@ -397,14 +397,33 @@
           .then(registration => {
             console.log('Service Worker registered:', registration);
             
-            // Check for updates every 60 seconds
+            // Check for updates every 30 seconds for faster deployment
             setInterval(() => {
               registration.update();
-            }, 60000);
+            }, 30000);
+            
+            // Also check on page visibility change (when user returns to tab)
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) {
+                registration.update();
+              }
+            });
+
+            // Listen for new service worker waiting
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New service worker is ready but waiting
+                  console.log('New version available, showing update notification');
+                  showUpdateNotification();
+                }
+              });
+            });
 
             // Listen for controller change (indicates new version activated)
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-              showUpdateNotification();
+              console.log('Service worker updated');
             });
           })
           .catch(error => {
