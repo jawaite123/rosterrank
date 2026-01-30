@@ -1,6 +1,17 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "releases": {
+    "1.3.0": {
+      "date": "2026-01-30",
+      "changes": [
+        "Enhanced modal dialogs with beautiful animations and smooth transitions",
+        "Smart duplicate detection with option to edit existing player",
+        "Dynamic changelog system loaded from external file",
+        "Update notification modal showing what's new in each release",
+        "Version footer with quick access to changelog",
+        "Improved user experience and visual polish throughout"
+      ]
+    },
     "1.2.0": {
       "date": "2026-01-30",
       "changes": [
