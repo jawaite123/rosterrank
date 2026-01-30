@@ -134,8 +134,16 @@
 
       // Load changelog from external file
       useEffect(() => {
+        // Try both paths - production (/rosterrank/) and local (relative)
         fetch('/rosterrank/changelog.json')
-          .then(response => response.json())
+          .then(response => {
+            if (!response.ok) throw new Error('Not found at /rosterrank/');
+            return response.json();
+          })
+          .catch(() => {
+            // Fallback to relative path for local development
+            return fetch('./changelog.json').then(r => r.json());
+          })
           .then(data => {
             setAppVersion(data.version);
             setChangelog(data.releases);
