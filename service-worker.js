@@ -1,6 +1,6 @@
 // IMPORTANT: Increment this version number every time you deploy changes
 // Example: 'rosterrank-v1', 'rosterrank-v2', 'rosterrank-v3', etc.
-const CACHE_NAME = 'rosterrank-v27';
+const CACHE_NAME = 'rosterrank-v28';
 const BASE_PATH = '/rosterrank';
 const urlsToCache = [
   BASE_PATH + '/',
@@ -57,8 +57,10 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           // Update the cache with the fresh response
           if (response.ok) {
-            const cache = caches.open(CACHE_NAME);
-            cache.then(c => c.put(event.request, response.clone()));
+              // Clone immediately so the body isn't consumed later
+              const responseToStore = response.clone();
+              const cache = caches.open(CACHE_NAME);
+              cache.then(c => c.put(event.request, responseToStore));
           }
           return response;
         })
@@ -76,8 +78,10 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .then((response) => {
           if (response.ok) {
+            // Clone immediately so the body isn't consumed later
+            const responseToStore = response.clone();
             const cache = caches.open(CACHE_NAME);
-            cache.then(c => c.put(event.request, response.clone()));
+            cache.then(c => c.put(event.request, responseToStore));
           }
           return response;
         })
