@@ -1,21 +1,21 @@
 {
-  "name": "RosterRank - Softball Player Ratings",
+  "name": "RosterRank - Player Analytics",
   "short_name": "RosterRank",
-  "description": "Rate and track your softball team's players with detailed scoring metrics",
+  "description": "Professional player rating and analytics tool",
   "start_url": "/rosterrank/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#059669",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23059669' width='192' height='192'/><text x='50%' y='50%' font-size='100' fill='white' text-anchor='middle' dominant-baseline='central' font-weight='bold'>⚾</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230f172a' width='192' height='192'/><text x='50%' y='55%' font-size='70' fill='%23f59e0b' text-anchor='middle' dominant-baseline='central' font-weight='bold'>RR</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23059669' width='512' height='512'/><text x='50%' y='50%' font-size='280' fill='white' text-anchor='middle' dominant-baseline='central' font-weight='bold'>⚾</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%230f172a' width='512' height='512'/><text x='50%' y='55%' font-size='180' fill='%23f59e0b' text-anchor='middle' dominant-baseline='central' font-weight='bold'>RR</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
@@ -24,7 +24,7 @@
   "categories": ["sports", "productivity"],
   "screenshots": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23059669' width='540' height='720'/><text x='270' y='100' font-size='60' fill='white' text-anchor='middle' font-weight='bold'>RosterRank</text><text x='270' y='200' font-size='48' fill='%23fcd34d' text-anchor='middle'>Rate Your Players</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230f172a' width='540' height='720'/><text x='270' y='100' font-size='60' fill='white' text-anchor='middle' font-weight='bold'>ROSTER</text><text x='270' y='170' font-size='60' fill='%23f59e0b' text-anchor='middle' font-weight='bold'>RANK</text><text x='270' y='250' font-size='24' fill='%2394a3b8' text-anchor='middle'>Player Analytics</text></svg>",
       "sizes": "540x720",
       "type": "image/svg+xml",
       "form_factor": "narrow"
