@@ -1,6 +1,6 @@
 // IMPORTANT: Increment this version number every time you deploy changes
 // Example: 'rosterrank-v1', 'rosterrank-v2', 'rosterrank-v3', etc.
-const CACHE_NAME = 'rosterrank-v21';
+const CACHE_NAME = 'rosterrank-v22';
 const BASE_PATH = '/rosterrank';
 const urlsToCache = [
   BASE_PATH + '/',
@@ -64,6 +64,24 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // Fall back to cached version if offline
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // For changelog.json, always use network-first to get latest version
+  if (event.request.url.includes('changelog.json')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const cache = caches.open(CACHE_NAME);
+            cache.then(c => c.put(event.request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => {
           return caches.match(event.request);
         })
     );

@@ -1088,14 +1088,8 @@
           });
       });
 
-      // Handle update available
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
+      // Note: Removed auto-refresh on controllerchange to allow update modal to stay visible
+      // User must click "REFRESH" in the modal to reload the page
 
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
