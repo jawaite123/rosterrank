@@ -122,6 +122,14 @@
       </svg>
     );
 
+    const Upload = ({ size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+    );
+
     const Edit2 = ({ size = 24, className = "" }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -148,6 +156,13 @@
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    );
+
+    const CheckCircle = ({ size = 24, className = "" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
       </svg>
     );
 
@@ -203,7 +218,7 @@
 
     function SoftballPlayerRater() {
       const [players, setPlayers] = useState([]);
-      const [modal, setModal] = useState({ visible: false, title: '', message: '', onAction: null, actionLabel: '' });
+      const [modal, setModal] = useState({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false });
       const [updateModal, setUpdateModal] = useState(false);
       const [editingId, setEditingId] = useState(null);
       const [appVersion, setAppVersion] = useState(null);
@@ -223,6 +238,7 @@
       const [deletedPlayer, setDeletedPlayer] = useState(null); // For undo functionality
       const hasMigratedRef = useRef(false); // Track if we've done initial migration
       const undoTimeoutRef = useRef(null); // Track undo timeout
+      const fileInputRef = useRef(null); // For CSV import
 
       // Load changelog from external file
       useEffect(() => {
@@ -429,7 +445,7 @@
       useEffect(() => {
         const onKey = (e) => {
           if (e.key === 'Escape') {
-            if (modal.visible) setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' });
+            if (modal.visible) setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false });
             if (updateModal) setUpdateModal(false);
           }
         };
@@ -450,7 +466,7 @@
               message: `Player #${numberToAdd} already exists. Would you like to edit the existing player instead?`,
               onAction: () => {
                 startEdit(existingPlayer);
-                setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' });
+                setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false });
               },
               actionLabel: 'Edit Existing Player'
             });
@@ -514,7 +530,7 @@
             message: `Player #${editedNumber} already exists. Would you like to switch to editing that player instead?`,
             onAction: () => {
               startEdit(existingPlayer);
-              setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' });
+              setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false });
             },
             actionLabel: 'Switch to That Player'
           });
@@ -597,6 +613,21 @@
           // Keep localStorage for recovery even if empty
           localStorage.setItem('softballPlayers', JSON.stringify(remainingPlayers));
         }
+      };
+
+      const showImportHelp = () => {
+        setModal({
+          visible: true,
+          title: 'Import CSV',
+          message: '',
+          onAction: () => {
+            // Click file input first (while still in user gesture context), then close modal
+            fileInputRef.current?.click();
+            setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false });
+          },
+          actionLabel: 'Select File',
+          isImportHelp: true
+        });
       };
 
       const toggleStar = async (id) => {
@@ -700,6 +731,147 @@
         URL.revokeObjectURL(url);
       };
 
+      const importData = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim());
+
+            if (lines.length < 2) {
+              setModal({ visible: true, title: 'Invalid File', message: 'CSV file is empty or invalid.', onAction: null, actionLabel: '' });
+              return;
+            }
+
+            // Parse header to find column indices
+            const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const playerNumIdx = header.findIndex(h => h.includes('player') && h.includes('number'));
+            const starredIdx = header.findIndex(h => h.includes('starred'));
+            const hittingIdx = header.findIndex(h => h.includes('hitting') || h === 'hit');
+            const popflyIdx = header.findIndex(h => h.includes('pop') || h.includes('fly'));
+            const fieldingIdx = header.findIndex(h => h.includes('fielding') || h === 'fld');
+            const throwingIdx = header.findIndex(h => h.includes('throwing') || h === 'arm');
+            const commentsIdx = header.findIndex(h => h.includes('comment'));
+
+            if (playerNumIdx === -1) {
+              setModal({ visible: true, title: 'Invalid Format', message: 'Could not find Player Number column in CSV.', onAction: null, actionLabel: '' });
+              return;
+            }
+
+            const newPlayers = [];
+            const existingNumbers = new Set(players.map(p => String(p.number).trim()));
+            let skipped = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+              // Parse CSV line (handle quoted fields with commas)
+              const row = [];
+              let current = '';
+              let inQuotes = false;
+              for (const char of lines[i]) {
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  row.push(current.trim());
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              row.push(current.trim());
+
+              const playerNum = row[playerNumIdx]?.trim();
+              if (!playerNum) continue;
+
+              // Skip if player number already exists
+              if (existingNumbers.has(playerNum)) {
+                skipped++;
+                continue;
+              }
+
+              const starred = starredIdx >= 0 && row[starredIdx]?.toLowerCase() === 'yes';
+              const hitting = hittingIdx >= 0 ? parseInt(row[hittingIdx]) || 5 : 5;
+              const popfly = popflyIdx >= 0 ? parseInt(row[popflyIdx]) || 5 : 5;
+              const fielding = fieldingIdx >= 0 ? parseInt(row[fieldingIdx]) || 5 : 5;
+              const throwing = throwingIdx >= 0 ? parseInt(row[throwingIdx]) || 5 : 5;
+              const comments = commentsIdx >= 0 ? row[commentsIdx]?.replace(/^"|"$/g, '') || '' : '';
+              const totalScore = hitting + popfly + fielding + throwing;
+
+              newPlayers.push({
+                id: Date.now() + i,
+                number: playerNum,
+                starred,
+                hitting: Math.min(10, Math.max(1, hitting)),
+                popfly: Math.min(10, Math.max(1, popfly)),
+                fielding: Math.min(10, Math.max(1, fielding)),
+                throwing: Math.min(10, Math.max(1, throwing)),
+                totalScore,
+                comments
+              });
+
+              existingNumbers.add(playerNum);
+            }
+
+            if (newPlayers.length === 0) {
+              setModal({
+                visible: true,
+                title: 'No Players Imported',
+                message: skipped > 0
+                  ? `No new players to import. ${skipped} player(s) skipped because they already exist.`
+                  : 'No valid players found in CSV file.',
+                onAction: null,
+                actionLabel: ''
+              });
+              return;
+            }
+
+            // Save to Firestore if authenticated
+            if (userId) {
+              setSyncStatus('syncing');
+              try {
+                const batch = db.batch();
+                newPlayers.forEach(player => {
+                  const docRef = db.collection('users').doc(userId).collection('players').doc(String(player.id));
+                  batch.set(docRef, player);
+                });
+                await batch.commit();
+                setSyncStatus('synced');
+              } catch (error) {
+                console.error('Error importing players:', error);
+                setSyncStatus('error');
+                // Still add to local state as fallback
+                const allPlayers = [...players, ...newPlayers];
+                setPlayers(allPlayers);
+                localStorage.setItem('softballPlayers', JSON.stringify(allPlayers));
+              }
+            } else {
+              // Offline fallback
+              const allPlayers = [...players, ...newPlayers];
+              setPlayers(allPlayers);
+              localStorage.setItem('softballPlayers', JSON.stringify(allPlayers));
+            }
+
+            setModal({
+              visible: true,
+              title: 'Import Successful',
+              message: `Imported ${newPlayers.length} player(s)${skipped > 0 ? `. ${skipped} skipped (already exist).` : '.'}`,
+              onAction: null,
+              actionLabel: ''
+            });
+
+          } catch (error) {
+            console.error('Error parsing CSV:', error);
+            setModal({ visible: true, title: 'Import Error', message: 'Error parsing CSV file. Please check the format.', onAction: null, actionLabel: '' });
+          }
+        };
+
+        reader.readAsText(file);
+        // Reset file input so same file can be imported again
+        event.target.value = '';
+      };
+
       const getScoreColor = (score) => {
         if (score >= 32) return 'bg-amber-500 text-slate-900';
         if (score >= 24) return 'bg-emerald-600 text-white';
@@ -754,6 +926,14 @@
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-2 py-3 sm:p-6 safe-area-top safe-area-bottom overflow-x-hidden" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
+          {/* Hidden file input - always rendered so ref is available */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={importData}
+            className="hidden"
+          />
           <div className="max-w-2xl mx-auto w-full">
             {/* Header */}
             <div className="relative text-center mb-3 sm:mb-4">
@@ -875,13 +1055,22 @@
                   <h2 className="text-base sm:text-lg font-bold text-white">
                     <span className="text-amber-500">{players.length}</span> {players.length === 1 ? 'Player' : 'Players'}
                   </h2>
-                  <button
-                    onClick={exportData}
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium active:scale-95 transition"
-                  >
-                    <Download className="inline mr-1" size={14} />
-                    Export
-                  </button>
+                  <div className="flex gap-1.5 sm:gap-2">
+                    <button
+                      onClick={showImportHelp}
+                      className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium active:scale-95 transition"
+                    >
+                      <Upload className="inline mr-1" size={14} />
+                      Import
+                    </button>
+                    <button
+                      onClick={exportData}
+                      className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2.5 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium active:scale-95 transition"
+                    >
+                      <Download className="inline mr-1" size={14} />
+                      Export
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -952,6 +1141,14 @@
               <div className="bg-slate-800 rounded-xl shadow-2xl p-8 text-center border border-slate-700">
                 <div className="text-5xl mb-3 opacity-50">👤</div>
                 <p className="text-slate-400 font-bold text-lg">Add your first player</p>
+                <p className="text-slate-500 text-sm mt-2">or import from a CSV file</p>
+                <button
+                  onClick={showImportHelp}
+                  className="mt-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium px-4 py-2 rounded-lg text-sm active:scale-95 transition"
+                >
+                  <Upload size={14} className="inline mr-1" />
+                  Import CSV
+                </button>
                 {/* Recovery option if backup exists */}
                 {(() => {
                   const backup = localStorage.getItem('softballPlayersBackup');
@@ -1011,7 +1208,7 @@
             <div
               className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fadeIn"
               style={{animation: 'fadeIn 0.2s ease-out'}}
-              onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' })}
+              onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false })}
             >
               <style>{`
                 @keyframes fadeIn {
@@ -1048,31 +1245,71 @@
                 <div className="mb-4">
                   <div
                     className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
-                      modal.onAction
-                        ? 'bg-amber-500'
-                        : 'bg-red-500'
+                      modal.isImportHelp
+                        ? 'bg-blue-500'
+                        : modal.onAction
+                          ? 'bg-amber-500'
+                          : modal.title?.toLowerCase().includes('success')
+                            ? 'bg-emerald-500'
+                            : 'bg-red-500'
                     }`}
                   >
-                    {modal.onAction ? (
+                    {modal.isImportHelp ? (
+                      <Upload size={32} className="text-white" strokeWidth={2.5} />
+                    ) : modal.onAction ? (
                       <Edit2 size={32} className="text-slate-900" strokeWidth={2.5} />
+                    ) : modal.title?.toLowerCase().includes('success') ? (
+                      <CheckCircle size={32} className="text-white" strokeWidth={2.5} />
                     ) : (
                       <AlertCircle size={32} className="text-white" strokeWidth={2.5} />
                     )}
                   </div>
                 </div>
                 <div id="modal-title" className="text-xl font-bold text-white mb-2">{modal.title}</div>
-                <div className="text-sm text-slate-400 mb-6 leading-relaxed">{modal.message}</div>
+                {modal.isImportHelp ? (
+                  <div className="text-left mb-5">
+                    <div className="bg-slate-900 rounded-lg p-3 border border-slate-700 text-sm">
+                      <div className="text-slate-300 mb-3">
+                        <span className="text-amber-500 font-bold">Required:</span>
+                        <div className="text-slate-400 ml-2 mt-1">• Player Number</div>
+                      </div>
+                      <div className="text-slate-300 mb-3">
+                        <span className="text-blue-400 font-bold">Optional:</span>
+                        <div className="text-slate-400 ml-2 mt-1 space-y-0.5">
+                          <div>• Starred (Yes/No)</div>
+                          <div>• Hitting, Pop Fly, Fielding, Throwing (1-10)</div>
+                          <div>• Comments</div>
+                        </div>
+                      </div>
+                      <div className="text-slate-500 text-xs border-t border-slate-700 pt-2 mt-2">
+                        <div>• Missing scores default to 5</div>
+                        <div>• Duplicate player numbers are skipped</div>
+                        <div>• Use exported CSV as a template</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-400 mb-6 leading-relaxed">{modal.message}</div>
+                )}
                 {modal.onAction ? (
                   <div className="space-y-2">
                     <button
                       onClick={modal.onAction}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 rounded-lg active:scale-95 transition"
+                      className={`w-full font-bold py-3 rounded-lg active:scale-95 transition ${
+                        modal.isImportHelp
+                          ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-slate-900'
+                      }`}
                     >
-                      <Edit2 className="inline mr-2" size={18} />
+                      {modal.isImportHelp ? (
+                        <Upload className="inline mr-2" size={18} />
+                      ) : (
+                        <Edit2 className="inline mr-2" size={18} />
+                      )}
                       {modal.actionLabel}
                     </button>
                     <button
-                      onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' })}
+                      onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false })}
                       className="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-3 rounded-lg active:scale-95 transition"
                     >
                       <X className="inline mr-1" size={16} />
@@ -1081,7 +1318,7 @@
                   </div>
                 ) : (
                   <button
-                    onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '' })}
+                    onClick={() => setModal({ visible: false, title: '', message: '', onAction: null, actionLabel: '', isImportHelp: false })}
                     className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg active:scale-95 transition"
                   >
                     OK
