@@ -663,12 +663,8 @@
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-6 safe-area-top" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
           <div className="max-w-2xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-4">
-              <h1 className="text-3xl sm:text-4xl font-black text-white mb-1 tracking-tight">
-                ROSTER<span className="text-amber-500">RANK</span>
-              </h1>
-              <p className="text-slate-400 font-medium text-sm uppercase tracking-widest">Player Analytics</p>
-              {/* Sync Status - tap to see account info */}
+            <div className="relative text-center mb-4">
+              {/* Sync Status - top right */}
               <button
                 onClick={() => {
                   const previousId = localStorage.getItem('rosterRankPreviousUserId');
@@ -678,11 +674,15 @@
                   }
                   alert(message);
                 }}
-                className={`inline-flex items-center gap-1 mt-1 text-xs ${syncDisplay.color} hover:opacity-80 transition`}
+                className={`absolute top-0 right-0 inline-flex items-center gap-1 text-xs ${syncDisplay.color} hover:opacity-80 transition`}
               >
                 {syncDisplay.icon}
                 <span>{syncDisplay.text}</span>
               </button>
+              <h1 className="text-3xl sm:text-4xl font-black text-white mb-1 tracking-tight">
+                ROSTER<span className="text-amber-500">RANK</span>
+              </h1>
+              <p className="text-slate-400 font-medium text-sm uppercase tracking-widest">Player Analytics</p>
             </div>
 
             {/* Form */}
