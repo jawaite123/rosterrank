@@ -835,10 +835,10 @@
                 id: Date.now() + i,
                 number: playerNum,
                 starred,
-                hitting: Math.min(10, Math.max(0, hitting)),
-                popfly: Math.min(10, Math.max(0, popfly)),
-                fielding: Math.min(10, Math.max(0, fielding)),
-                throwing: Math.min(10, Math.max(0, throwing)),
+                hitting: Math.min(10, Math.max(1, hitting)),
+                popfly: Math.min(10, Math.max(1, popfly)),
+                fielding: Math.min(10, Math.max(1, fielding)),
+                throwing: Math.min(10, Math.max(1, throwing)),
                 totalScore,
                 comments
               });
@@ -925,7 +925,8 @@
       };
 
       const getSliderStyle = (value, color) => {
-        const percent = (value / 10) * 100;
+        // Calculate percentage for 1-10 range (min=1, max=10)
+        const percent = ((value - 1) / 9) * 100;
         return {
           background: `linear-gradient(to right, ${color} 0%, ${color} ${percent}%, #334155 ${percent}%, #334155 100%)`,
           color: color
@@ -1064,7 +1065,7 @@
                     </div>
                     <input
                       type="range"
-                      min="0"
+                      min="1"
                       max="10"
                       value={currentPlayer[key]}
                       onChange={(e) => setCurrentPlayer({...currentPlayer, [key]: parseInt(e.target.value)})}
@@ -1351,7 +1352,7 @@
                           </div>
                           <div className="flex items-start gap-2">
                             <span className="text-blue-400">•</span>
-                            <span>Hitting, Pop Fly, Fielding, Throwing (0-10)</span>
+                            <span>Hitting, Pop Fly, Fielding, Throwing (1-10)</span>
                           </div>
                           <div className="flex items-start gap-2">
                             <span className="text-blue-400">•</span>
