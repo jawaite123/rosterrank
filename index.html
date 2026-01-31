@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#059669">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#16a34a">
   <meta name="description" content="Rate and track your softball team's players with detailed scoring metrics">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RosterRank">
-  <link rel="manifest" href="/rosterrank/manifest.json">
+  <link rel="manifest" href="/RosterRank/manifest.json">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23059669' width='180' height='180' rx='40'/><text x='50%' y='50%' font-size='90' fill='white' text-anchor='middle' dominant-baseline='central' font-weight='bold'>⚾</text></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23059669' width='180' height='180' rx='40'/><text x='50%' y='50%' font-size='90' fill='white' text-anchor='middle' dominant-baseline='central' font-weight='bold'>⚾</text></svg>">
   <title>⚾ RosterRank - Softball Player Ratings</title>
@@ -46,6 +46,14 @@
     });
   </script>
   <style>
+    /* iOS PWA status bar background */
+    html, body {
+      background: #16a34a;
+    }
+    /* Safe area padding for notch */
+    .safe-area-top {
+      padding-top: env(safe-area-inset-top);
+    }
     /* Custom slider styling */
     input[type="range"] {
       -webkit-appearance: none;
@@ -194,11 +202,11 @@
 
       // Load changelog from external file
       useEffect(() => {
-        // Try both paths - production (/rosterrank/) and local (relative)
+        // Try both paths - production (/RosterRank/) and local (relative)
         const tryFetch = async () => {
           try {
             // Try production path first
-            let response = await fetch('/rosterrank/changelog.json');
+            let response = await fetch('/RosterRank/changelog.json');
 
             if (!response.ok) {
               // Fallback to relative path for local development
@@ -565,7 +573,7 @@
       // Show loading screen while initializing
       if (isLoading) {
         return (
-          <div className="min-h-screen bg-gradient-to-br from-green-600 via-emerald-700 to-teal-800 flex items-center justify-center" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
+          <div className="min-h-screen bg-gradient-to-br from-green-600 via-emerald-700 to-teal-800 flex items-center justify-center safe-area-top" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
             <div className="text-center">
               <div className="text-6xl mb-4">⚾</div>
               <Loader size={32} className="animate-spin text-white mx-auto mb-2" />
@@ -576,7 +584,7 @@
       }
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-green-600 via-emerald-700 to-teal-800 p-3 sm:p-6" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
+        <div className="min-h-screen bg-gradient-to-br from-green-600 via-emerald-700 to-teal-800 p-3 sm:p-6 safe-area-top" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>
           <div className="max-w-2xl mx-auto">
             {/* Header */}
             <div className="text-center mb-4">
@@ -896,7 +904,7 @@
     // PWA Service Worker Registration and Update Checking
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/rosterrank/service-worker.js')
+        navigator.serviceWorker.register('/RosterRank/service-worker.js')
           .then(registration => {
             console.log('Service Worker registered:', registration);
             

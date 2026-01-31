@@ -1,7 +1,7 @@
 // IMPORTANT: Increment this version number every time you deploy changes
 // Example: 'rosterrank-v1', 'rosterrank-v2', 'rosterrank-v3', etc.
-const CACHE_NAME = 'rosterrank-v13';
-const BASE_PATH = '/rosterrank';
+const CACHE_NAME = 'rosterrank-v14';
+const BASE_PATH = '/RosterRank';
 const urlsToCache = [
   BASE_PATH + '/',
   BASE_PATH + '/index.html',
