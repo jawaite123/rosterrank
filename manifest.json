@@ -2,7 +2,7 @@
   "name": "RosterRank - Softball Player Ratings",
   "short_name": "RosterRank",
   "description": "Rate and track your softball team's players with detailed scoring metrics",
-  "start_url": "/RosterRank/",
+  "start_url": "/rosterrank/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#059669",
