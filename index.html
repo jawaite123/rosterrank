@@ -431,6 +431,8 @@
       const startEdit = (player) => {
         setEditingId(player.id);
         setCurrentPlayer({ ...player });
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
       const saveEdit = async () => {
