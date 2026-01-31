@@ -1,6 +1,15 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.3",
   "releases": {
+    "1.5.3": {
+      "date": "2026-01-30",
+      "changes": [
+        "Backup recovery - restore players from local backup if data is lost",
+        "Improved data protection with automatic backups",
+        "Account ID tracking to detect sync issues",
+        "Tap sync status to view account info"
+      ]
+    },
     "1.5.2": {
       "date": "2026-01-30",
       "changes": [

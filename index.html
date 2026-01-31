@@ -270,6 +270,18 @@
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
           if (user) {
             setUserId(user.uid);
+            // Save user ID to localStorage as backup
+            const savedUserId = localStorage.getItem('rosterRankUserId');
+            if (!savedUserId) {
+              localStorage.setItem('rosterRankUserId', user.uid);
+            } else if (savedUserId !== user.uid) {
+              // User ID changed! This means auth was reset.
+              // Log this for debugging and save the new one
+              console.warn('User ID changed from', savedUserId, 'to', user.uid);
+              console.warn('Old data may be at:', savedUserId);
+              localStorage.setItem('rosterRankPreviousUserId', savedUserId);
+              localStorage.setItem('rosterRankUserId', user.uid);
+            }
           } else {
             // Sign in anonymously
             try {
@@ -311,7 +323,8 @@
 
               // If Firestore is empty but localStorage has data, migrate it (only once)
               if (firestorePlayers.length === 0 && !hasMigratedRef.current) {
-                const saved = localStorage.getItem('softballPlayers');
+                // Try main storage first, then backup
+                const saved = localStorage.getItem('softballPlayers') || localStorage.getItem('softballPlayersBackup');
                 if (saved) {
                   try {
                     const localPlayers = JSON.parse(saved);
@@ -335,11 +348,13 @@
               } else if (firestorePlayers.length === 0) {
                 // Firestore is empty and we've already migrated - user deleted all players
                 setPlayers([]);
-                localStorage.removeItem('softballPlayers');
+                // Don't remove localStorage - keep as backup for recovery
               } else {
                 setPlayers(firestorePlayers);
                 // Keep localStorage in sync for offline fallback
                 localStorage.setItem('softballPlayers', JSON.stringify(firestorePlayers));
+                // Also save a backup copy that won't be deleted
+                localStorage.setItem('softballPlayersBackup', JSON.stringify(firestorePlayers));
                 hasMigratedRef.current = true;
               }
 
@@ -524,21 +539,15 @@
             // Still delete from local state as fallback
             const remainingPlayers = players.filter(p => p.id !== id);
             setPlayers(remainingPlayers);
-            if (remainingPlayers.length === 0) {
-              localStorage.removeItem('softballPlayers');
-            } else {
-              localStorage.setItem('softballPlayers', JSON.stringify(remainingPlayers));
-            }
+            // Keep localStorage for recovery even if empty
+            localStorage.setItem('softballPlayers', JSON.stringify(remainingPlayers));
           }
         } else {
           // Offline fallback
           const remainingPlayers = players.filter(p => p.id !== id);
           setPlayers(remainingPlayers);
-          if (remainingPlayers.length === 0) {
-            localStorage.removeItem('softballPlayers');
-          } else {
-            localStorage.setItem('softballPlayers', JSON.stringify(remainingPlayers));
-          }
+          // Keep localStorage for recovery even if empty
+          localStorage.setItem('softballPlayers', JSON.stringify(remainingPlayers));
         }
       };
 
@@ -659,11 +668,21 @@
                 ROSTER<span className="text-amber-500">RANK</span>
               </h1>
               <p className="text-slate-400 font-medium text-sm uppercase tracking-widest">Player Analytics</p>
-              {/* Sync Status */}
-              <div className={`inline-flex items-center gap-1 mt-1 text-xs ${syncDisplay.color}`}>
+              {/* Sync Status - tap to see account info */}
+              <button
+                onClick={() => {
+                  const previousId = localStorage.getItem('rosterRankPreviousUserId');
+                  let message = `Account ID:\n${userId || 'Not connected'}\n\n`;
+                  if (previousId) {
+                    message += `⚠️ Previous ID detected:\n${previousId}\n\nYour data may still exist under the old ID in Firebase.`;
+                  }
+                  alert(message);
+                }}
+                className={`inline-flex items-center gap-1 mt-1 text-xs ${syncDisplay.color} hover:opacity-80 transition`}
+              >
                 {syncDisplay.icon}
                 <span>{syncDisplay.text}</span>
-              </div>
+              </button>
             </div>
 
             {/* Form */}
@@ -811,6 +830,45 @@
               <div className="bg-slate-800 rounded-xl shadow-2xl p-8 text-center border border-slate-700">
                 <div className="text-5xl mb-3 opacity-50">👤</div>
                 <p className="text-slate-400 font-bold text-lg">Add your first player</p>
+                {/* Recovery option if backup exists */}
+                {(() => {
+                  const backup = localStorage.getItem('softballPlayersBackup');
+                  const main = localStorage.getItem('softballPlayers');
+                  const hasBackup = backup && JSON.parse(backup).length > 0;
+                  const hasMain = main && JSON.parse(main).length > 0;
+                  if (hasBackup || hasMain) {
+                    const data = hasMain ? JSON.parse(main) : JSON.parse(backup);
+                    return (
+                      <button
+                        onClick={async () => {
+                          if (userId) {
+                            setSyncStatus('syncing');
+                            try {
+                              const batch = db.batch();
+                              data.forEach(player => {
+                                const docRef = db.collection('users').doc(userId).collection('players').doc(String(player.id));
+                                batch.set(docRef, player);
+                              });
+                              await batch.commit();
+                              setSyncStatus('synced');
+                            } catch (error) {
+                              console.error('Error restoring backup:', error);
+                              setSyncStatus('error');
+                              setPlayers(data);
+                            }
+                          } else {
+                            setPlayers(data);
+                          }
+                        }}
+                        className="mt-4 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm active:scale-95 transition"
+                      >
+                        <Undo size={14} className="inline mr-1" />
+                        Restore {data.length} player{data.length !== 1 ? 's' : ''} from backup
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
 
