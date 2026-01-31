@@ -679,7 +679,7 @@
               <div className="bg-white rounded-2xl shadow-2xl p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-2xl font-black text-gray-800">
-                    TEAM <span className="text-orange-600">({players.length})</span>
+                    <span className="text-orange-600">{players.length}</span> {players.length === 1 ? 'Player' : 'Players'}
                   </h2>
                   <button
                     onClick={exportData}
