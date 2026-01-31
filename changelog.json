@@ -1,6 +1,12 @@
 {
-  "version": "1.5.9",
+  "version": "1.5.10",
   "releases": {
+    "1.5.10": {
+      "date": "2026-01-31",
+      "changes": [
+        "Fix export bug"
+      ]
+    },
     "1.5.9": {
       "date": "2026-01-31",
       "changes": [

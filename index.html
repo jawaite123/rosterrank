@@ -714,21 +714,43 @@
           player.totalScore,
           `"${(player.comments || '').replace(/"/g, '""')}"`
         ]);
-        
+
         const csvContent = [
           headers.join(','),
           ...rows.map(row => row.join(','))
         ].join('\n');
-        
+
+        // Add timestamp to filename to prevent caching
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `softball-ratings-${timestamp}.csv`;
+
         const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'softball-ratings.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+
+        // Try Web Share API on mobile for better experience
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([dataBlob], filename, { type: 'text/csv' })] })) {
+          const file = new File([dataBlob], filename, { type: 'text/csv' });
+          navigator.share({
+            files: [file],
+            title: 'RosterRank Export',
+          }).catch(() => {
+            // Fall back to download if share fails
+            downloadFile(dataBlob, filename);
+          });
+        } else {
+          downloadFile(dataBlob, filename);
+        }
+
+        function downloadFile(blob, name) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          // Delay revoking to ensure download starts
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
       };
 
       const importData = async (event) => {
@@ -762,8 +784,10 @@
             }
 
             const newPlayers = [];
-            const existingNumbers = new Set(players.map(p => String(p.number).trim()));
-            let skipped = 0;
+            const existingInApp = new Set(players.map(p => String(p.number).trim()));
+            const seenInFile = new Set();
+            let skippedExisting = 0;
+            let skippedDuplicate = 0;
 
             for (let i = 1; i < lines.length; i++) {
               // Parse CSV line (handle quoted fields with commas)
@@ -785,11 +809,19 @@
               const playerNum = row[playerNumIdx]?.trim();
               if (!playerNum) continue;
 
-              // Skip if player number already exists
-              if (existingNumbers.has(playerNum)) {
-                skipped++;
+              // Skip if player number already exists in app
+              if (existingInApp.has(playerNum)) {
+                skippedExisting++;
                 continue;
               }
+
+              // Skip if duplicate in the CSV file itself
+              if (seenInFile.has(playerNum)) {
+                skippedDuplicate++;
+                continue;
+              }
+
+              seenInFile.add(playerNum);
 
               const starred = starredIdx >= 0 && row[starredIdx]?.toLowerCase() === 'yes';
               const hitting = hittingIdx >= 0 ? parseInt(row[hittingIdx]) || 5 : 5;
@@ -810,17 +842,16 @@
                 totalScore,
                 comments
               });
-
-              existingNumbers.add(playerNum);
             }
 
             if (newPlayers.length === 0) {
+              let skipMsg = '';
+              if (skippedExisting > 0) skipMsg += `${skippedExisting} already in roster. `;
+              if (skippedDuplicate > 0) skipMsg += `${skippedDuplicate} duplicate(s) in file.`;
               setModal({
                 visible: true,
                 title: 'No Players Imported',
-                message: skipped > 0
-                  ? `No new players to import. ${skipped} player(s) skipped because they already exist.`
-                  : 'No valid players found in CSV file.',
+                message: skipMsg ? `No new players to import. ${skipMsg}` : 'No valid players found in CSV file.',
                 onAction: null,
                 actionLabel: ''
               });
@@ -853,10 +884,13 @@
               localStorage.setItem('softballPlayers', JSON.stringify(allPlayers));
             }
 
+            let skipDetails = [];
+            if (skippedExisting > 0) skipDetails.push(`${skippedExisting} already in roster`);
+            if (skippedDuplicate > 0) skipDetails.push(`${skippedDuplicate} duplicate(s) in file`);
             setModal({
               visible: true,
               title: 'Import Successful',
-              message: `Imported ${newPlayers.length} player(s)${skipped > 0 ? `. ${skipped} skipped (already exist).` : '.'}`,
+              message: `Imported ${newPlayers.length} player(s)${skipDetails.length > 0 ? `. Skipped: ${skipDetails.join(', ')}.` : '.'}`,
               onAction: null,
               actionLabel: ''
             });
