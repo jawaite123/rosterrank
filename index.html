@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#16a34a">
   <meta name="description" content="Rate and track your softball team's players with detailed scoring metrics">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RosterRank">
@@ -87,7 +88,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     // Lucide React icons as inline SVGs
     const Trash2 = ({ size = 24, className = "" }) => (
@@ -198,7 +199,7 @@
       const [userId, setUserId] = useState(null);
       const [isLoading, setIsLoading] = useState(true);
       const [syncStatus, setSyncStatus] = useState('offline'); // 'synced', 'syncing', 'offline', 'error'
-      const [hasMigrated, setHasMigrated] = useState(false); // Track if we've done initial migration
+      const hasMigratedRef = useRef(false); // Track if we've done initial migration
 
       // Load changelog from external file
       useEffect(() => {
@@ -291,7 +292,7 @@
               }));
 
               // If Firestore is empty but localStorage has data, migrate it (only once)
-              if (firestorePlayers.length === 0 && !hasMigrated) {
+              if (firestorePlayers.length === 0 && !hasMigratedRef.current) {
                 const saved = localStorage.getItem('softballPlayers');
                 if (saved) {
                   try {
@@ -312,7 +313,7 @@
                     console.error('Error migrating data:', e);
                   }
                 }
-                setHasMigrated(true);
+                hasMigratedRef.current = true;
               } else if (firestorePlayers.length === 0) {
                 // Firestore is empty and we've already migrated - user deleted all players
                 setPlayers([]);
@@ -321,7 +322,7 @@
                 setPlayers(firestorePlayers);
                 // Keep localStorage in sync for offline fallback
                 localStorage.setItem('softballPlayers', JSON.stringify(firestorePlayers));
-                setHasMigrated(true);
+                hasMigratedRef.current = true;
               }
 
               setSyncStatus('synced');
