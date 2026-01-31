@@ -1,6 +1,13 @@
 {
-  "version": "1.5.3",
+  "version": "1.5.5",
   "releases": {
+    "1.5.5": {
+      "date": "2026-01-30",
+      "changes": [
+        "Add star feature",
+        "Bug fixes"
+      ]
+    },
     "1.5.3": {
       "date": "2026-01-30",
       "changes": [
