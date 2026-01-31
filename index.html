@@ -190,6 +190,7 @@
       const [userId, setUserId] = useState(null);
       const [isLoading, setIsLoading] = useState(true);
       const [syncStatus, setSyncStatus] = useState('offline'); // 'synced', 'syncing', 'offline', 'error'
+      const [hasMigrated, setHasMigrated] = useState(false); // Track if we've done initial migration
 
       // Load changelog from external file
       useEffect(() => {
@@ -281,8 +282,8 @@
                 ...doc.data()
               }));
 
-              // If Firestore is empty but localStorage has data, migrate it
-              if (firestorePlayers.length === 0) {
+              // If Firestore is empty but localStorage has data, migrate it (only once)
+              if (firestorePlayers.length === 0 && !hasMigrated) {
                 const saved = localStorage.getItem('softballPlayers');
                 if (saved) {
                   try {
@@ -303,10 +304,16 @@
                     console.error('Error migrating data:', e);
                   }
                 }
+                setHasMigrated(true);
+              } else if (firestorePlayers.length === 0) {
+                // Firestore is empty and we've already migrated - user deleted all players
+                setPlayers([]);
+                localStorage.removeItem('softballPlayers');
               } else {
                 setPlayers(firestorePlayers);
                 // Keep localStorage in sync for offline fallback
                 localStorage.setItem('softballPlayers', JSON.stringify(firestorePlayers));
+                setHasMigrated(true);
               }
 
               setSyncStatus('synced');
